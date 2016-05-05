@@ -32,6 +32,7 @@ void initializeSDCard(void) {
   }
   Serial.println("card initialized.");
 
+  // TODO: this code will fail to create a Csv file after there are 100 files in the sd card
   // create a new file
   char filename[] = "LOGGER00.CSV";
   for (uint8_t i = 0; i < 100; i++) {

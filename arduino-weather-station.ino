@@ -1,9 +1,10 @@
 /* ADAFRUIT FEATHER 32u4 WEATHER STATION
- pinout https://learn.adafruit.com/system/assets/assets/000/030/918/original/microcomputers_2771_pinout_v1_0.png?1457305552
- Logs sensor data to logger
- sends some sensor data over to an XBEE via Serial1
- stack data adafruit adalogger featherwing on 32u4 feather
- connect BME280 via I2C
+  pinout https://learn.adafruit.com/system/assets/assets/000/030/918/original/microcomputers_2771_pinout_v1_0.png?1457305552
+  Logs sensor data to logger
+  sends sensor data over to an XBEE via Serial1
+  stack adafruit adalogger featherwing on 32u4 feather - https://www.adafruit.com/products/2922
+  connect BME280 via I2C - https://www.adafruit.com/products/2652
+  connect INA3221 via I2C - http://www.switchdoc.com/ina3221-breakout-board/
 */
 
 
@@ -12,11 +13,12 @@
 #include <RTClib.h> //needed for the RTC chip in the adalogger
 #include <SDL_Arduino_INA3221.h> //needed for the energy monitoring breakout board
 #include <Adafruit_BME280.h> // needed for the BME280 sensor
+#include "LowPower.h"
 
 
 // BME 280
 Adafruit_BME280 bme;
-#define SEALEVELPRESSURE_HPA (1017.0)
+#define SEALEVELPRESSURE_HPA (1017.0) //this is a setting to calibrate elevation. Get from NWS for your location
 
 
 // SOLAR MEASURING
@@ -27,26 +29,16 @@ SDL_Arduino_INA3221 ina3221;
 
 // SD CARD LOGGING
 File logfile;
-uint32_t syncTime = 0; // time of last sync()
-
-// how many milliseconds between grabbing data and logging it. 1000 ms is once a second
-#define LOG_INTERVAL  1000 // mills between entries (reduce to take more/faster data)
-
-// how many milliseconds before writing the logged data permanently to disk
-// set it to the LOG_INTERVAL to write each time (safest)
-// set it to 10*LOG_INTERVAL to write all data every 10 datareads, you could lose up to
-// the last 10 reads if power is lost but it uses less power and is much faster!
-#define SYNC_INTERVAL 1000 // mills between calls to flush() - to write data to the card
-
 
 // Real Time Clock
-RTC_PCF8523 rtc; 
+RTC_PCF8523 rtc;
 
 // ON/OFF SWITCHES FOR WHERE TO LOG
 #define ECHO_TO_SERIAL   1 // echo data to serial port
-#define WAIT_TO_START    0 // Wait for serial input in setup()
 #define ECHO_TO_XBEE     1 // enable or disable xbee sending
 
+//pin that is connected to DTR / pin 9 of XBEE
+const int XBee_wake = 5;
 
 // VARIABLES FOR LOGGING DATA
 float temp = 0;
@@ -69,6 +61,9 @@ void error(char *str)
 
 void setup(void)
 {
+
+  turnXBeeOn();
+
   Serial1.begin(9600); // XBee
   Serial.begin(57600); // UART / Serial monitor
 
@@ -84,15 +79,14 @@ void setup(void)
 void loop(void)
 {
 
-  // delay for the amount of time we want between readings
-  delay((LOG_INTERVAL - 1) - (millis() % LOG_INTERVAL));
-
-  // READ THE SENSORS
+  turnXBeeOn();
   readTheSensors();
-  
-  // READ THE POWER CONSUMPTION
   readPowerConsumption();
-
-  //log things
   logThings();
+  //give the xbee a chance to finish transmitting
+  delay(1500);
+  turnXBeeOff();
+  // Power down the microcontroller for 8 s with ADC and BOD module disabled
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+
 }

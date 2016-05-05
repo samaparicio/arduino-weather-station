@@ -14,14 +14,11 @@ void logThings(void) {
   printFloat(busvoltage3);
 
   logfile.println();
+  logfile.flush();
+
   Serial.println();
   Serial1.println();
   
-  // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
-  // which uses a bunch of power and takes time
-  if ((millis() - syncTime) < SYNC_INTERVAL) return;
-  syncTime = millis();
-  logfile.flush();
 }
 
 
