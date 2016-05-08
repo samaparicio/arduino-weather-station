@@ -86,7 +86,10 @@ void loop(void)
   //give the xbee a chance to finish transmitting
   delay(1500);
   turnXBeeOff();
-  // Power down the microcontroller for 8 s with ADC and BOD module disabled
-  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 
+  // power down the arduino for ~1 min
+  for (int i = 0; i < 7; i++) {
+    // Power down the microcontroller for 8 s with ADC and BOD module disabled
+    LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  }
 }
